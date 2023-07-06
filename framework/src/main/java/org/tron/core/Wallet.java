@@ -534,13 +534,14 @@ public class Wallet {
       if (chainBaseManager.getDynamicPropertiesStore().supportVM()) {
         trx.resetResult();
       }
+      long startTime = System.currentTimeMillis();
       dbManager.pushTransaction(trx);
       int num = tronNetService.fastBroadcastTransaction(message);
       if (num == 0 && minEffectiveConnection != 0) {
         return builder.setResult(false).setCode(response_code.NOT_ENOUGH_EFFECTIVE_CONNECTION)
             .setMessage(ByteString.copyFromUtf8("P2P broadcast failed.")).build();
       } else {
-        logger.info("Broadcast transaction {} to {} peers successfully.", txID, num);
+        logger.info("Broadcast transaction {} to {} peers successfully, time {}.", txID, num, System.currentTimeMillis() - startTime);
         return builder.setResult(true).setCode(response_code.SUCCESS).build();
       }
     } catch (ValidateSignatureException e) {

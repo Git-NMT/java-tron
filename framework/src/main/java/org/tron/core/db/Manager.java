@@ -865,7 +865,9 @@ public class Manager {
           }
 
           try (ISession tmpSession = revokingStore.buildSession()) {
+            long startTime = System.currentTimeMillis();
             processTransaction(trx, null);
+            logger.info("processTransaction time: {}", System.currentTimeMillis() - startTime);
             trx.setTrxTrace(null);
             pendingTransactions.add(trx);
             Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
@@ -1425,19 +1427,22 @@ public class Manager {
 
     validateDup(trxCap);
 
+    long validateSigTime = System.currentTimeMillis();
     if (!trxCap.validateSignature(chainBaseManager.getAccountStore(),
         chainBaseManager.getDynamicPropertiesStore())) {
       throw new ValidateSignatureException(
           String.format(" %s transaction signature validate failed", txId));
     }
+    logger.info("processTransaction validateSignature time: {}", validateSigTime);
 
     TransactionTrace trace = new TransactionTrace(trxCap, StoreFactory.getInstance(),
         new RuntimeImpl());
     trxCap.setTrxTrace(trace);
-
+    long bandwidthTime = System.currentTimeMillis();
     consumeBandwidth(trxCap, trace);
     consumeMultiSignFee(trxCap, trace);
     consumeMemoFee(trxCap, trace);
+    logger.info("processTransaction consumeBandwidth time: {}", bandwidthTime);
 
     trace.init(blockCap, eventPluginLoaded);
     trace.checkIsConstant();

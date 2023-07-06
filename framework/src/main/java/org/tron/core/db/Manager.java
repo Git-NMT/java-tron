@@ -193,7 +193,8 @@ public class Manager {
   @Getter
   @Setter
   private boolean isSyncMode;
-
+  @Getter
+  private Object forkLock = new Object();
   // map<Long, IncrementalMerkleTree>
   @Getter
   @Setter
@@ -449,6 +450,7 @@ public class Manager {
     trieService.setChainBaseManager(chainBaseManager);
     revokingStore.disable();
     revokingStore.check();
+    transactionCache.initCache();
     this.setProposalController(ProposalController.createInstance(this));
     this.setMerkleContainer(
         merkleContainer.createInstance(chainBaseManager.getMerkleTreeStore(),
@@ -1278,8 +1280,9 @@ public class Manager {
                   chainBaseManager.getDynamicPropertiesStore().getLatestBlockHeaderTimestamp(),
                   khaosDb.getHead(), khaosDb.getMiniStore().size(),
                   khaosDb.getMiniUnlinkedStore().size());
-
-              switchFork(newBlock);
+              synchronized (forkLock) {
+                switchFork(newBlock);
+              }
               logger.info(SAVE_BLOCK, newBlock);
 
               logger.warn(
@@ -1758,14 +1761,18 @@ public class Manager {
 
     payReward(block);
 
-    if (chainBaseManager.getDynamicPropertiesStore().getNextMaintenanceTime()
-        <= block.getTimeStamp()) {
+    boolean flag = chainBaseManager.getDynamicPropertiesStore().getNextMaintenanceTime()
+        <= block.getTimeStamp();
+    if (flag) {
       proposalController.processProposals();
-      chainBaseManager.getForkController().reset();
     }
 
     if (!consensus.applyBlock(block)) {
       throw new BadBlockException("consensus apply block failed");
+    }
+
+    if (flag) {
+      chainBaseManager.getForkController().reset();
     }
 
     updateTransHashCache(block);
@@ -1927,6 +1934,7 @@ public class Manager {
   public void closeAllStore() {
     logger.info("******** Begin to close db. ********");
     chainBaseManager.closeAllStore();
+    validateSignService.shutdown();
     logger.info("******** End to close db. ********");
   }
 

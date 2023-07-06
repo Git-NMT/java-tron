@@ -1436,7 +1436,7 @@ public class Manager {
       throw new ValidateSignatureException(
           String.format(" %s transaction signature validate failed", txId));
     }
-    logger.info("processTransaction validateSignature time: {}", validateSigTime);
+    logger.info("processTransaction validateSignature time: {}", System.currentTimeMillis() - validateSigTime);
 
     TransactionTrace trace = new TransactionTrace(trxCap, StoreFactory.getInstance(),
         new RuntimeImpl());

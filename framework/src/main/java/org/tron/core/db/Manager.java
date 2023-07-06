@@ -869,7 +869,7 @@ public class Manager {
           try (ISession tmpSession = revokingStore.buildSession()) {
             long startTime = System.currentTimeMillis();
             processTransaction(trx, null);
-            logger.info("processTransaction time: {}", System.currentTimeMillis() - startTime);
+            logger.info("processTransaction execute time: {}", System.currentTimeMillis() - startTime);
             trx.setTrxTrace(null);
             pendingTransactions.add(trx);
             Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
@@ -1445,7 +1445,7 @@ public class Manager {
     consumeBandwidth(trxCap, trace);
     consumeMultiSignFee(trxCap, trace);
     consumeMemoFee(trxCap, trace);
-    logger.info("processTransaction consumeBandwidth time: {}", bandwidthTime);
+    logger.info("processTransaction consumeBandwidth time: {}", System.currentTimeMillis() - bandwidthTime);
 
     trace.init(blockCap, eventPluginLoaded);
     trace.checkIsConstant();

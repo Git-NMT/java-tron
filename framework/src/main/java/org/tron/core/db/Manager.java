@@ -823,6 +823,10 @@ public class Manager {
   /**
    * push transaction into pending.
    */
+
+  private static AtomicInteger atomicInteger = new AtomicInteger(0);
+  private static long startTime = 0;
+
   public boolean pushTransaction(final TransactionCapsule trx)
       throws ValidateSignatureException, ContractValidateException, ContractExeException,
       AccountResourceInsufficientException, DupTransactionException, TaposException,
@@ -843,7 +847,6 @@ public class Manager {
         throw new ValidateSignatureException(String.format("trans sig validate failed, id: %s",
             trx.getTransactionId()));
       }
-
       synchronized (transactionLock) {
         while (true) {
           try {
@@ -857,6 +860,11 @@ public class Manager {
             logger.debug("The wait has been interrupted.");
           }
         }
+
+        if (startTime == 0) {
+          startTime = System.nanoTime();
+        }
+
         synchronized (this) {
           if (isShieldedTransaction(trx.getInstance())
                   && shieldedTransInPendingCounts.get() >= shieldedTransInPendingMaxCounts) {
@@ -867,9 +875,7 @@ public class Manager {
           }
 
           try (ISession tmpSession = revokingStore.buildSession()) {
-            long startTime = System.currentTimeMillis();
             processTransaction(trx, null);
-            logger.info("processTransaction execute time: {}", System.currentTimeMillis() - startTime);
             trx.setTrxTrace(null);
             pendingTransactions.add(trx);
             Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
@@ -878,6 +884,14 @@ public class Manager {
           }
           if (isShieldedTransaction(trx.getInstance())) {
             shieldedTransInPendingCounts.incrementAndGet();
+          }
+          atomicInteger.incrementAndGet();
+          long endTime = System.nanoTime() - startTime;
+          if (endTime >= 3_000_000_000L) {
+            logger.info("size: {}, pushTransactionQueue size: {}", atomicInteger.get(),
+                    pushTransactionQueue.size());
+            atomicInteger.set(0);
+            startTime = 0;
           }
         }
       }

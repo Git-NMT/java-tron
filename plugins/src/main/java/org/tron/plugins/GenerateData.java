@@ -90,7 +90,6 @@ public class GenerateData implements Callable<Integer> {
     accountIterator.seekToFirst();
     logger.info("open account");
     while (count < 2_000_000) {
-      count++;
       byte[] key = accountIterator.getKey();
       byte[] value = accountIterator.getValue();
       Protocol.Account account = Protocol.Account.parseFrom(value);
@@ -128,6 +127,7 @@ public class GenerateData implements Callable<Integer> {
   }
 
   private static void writeToFile(BufferedWriter accountFile, String data) throws IOException {
+    count++;
     accountFile.write(data);
     accountFile.newLine();
     // for test
@@ -140,16 +140,15 @@ public class GenerateData implements Callable<Integer> {
 
   public static Map<String, Long> getAllAssets(Protocol.Account account) {
     Map<String, Long> assets = new HashMap<>();
-    Map<WrappedByteArray, byte[]> map = prefixQuery(account.getAddress().toByteArray());
-    map.forEach((k, v) -> {
-      // 拆分的重点在这里
-      byte[] assetID = ByteArray.subArray(k.getBytes(),
-              account.getAddress().toByteArray().length, k.getBytes().length);
-      String assetIdKey = ByteArray.toStr(assetID);
-      if (StringUtils.isNoneEmpty(assetIdKey)) {
-        assets.put(assetIdKey, Longs.fromByteArray(v));
-      }
-    });
+    if (account.getAssetOptimized()) {
+      Map<WrappedByteArray, byte[]> map = prefixQuery(account.getAddress().toByteArray());
+      map.forEach((k, v) -> {
+        byte[] assetID = ByteArray.subArray(k.getBytes(),
+                account.getAddress().toByteArray().length, k.getBytes().length);
+        assets.put(ByteArray.toStr(assetID), Longs.fromByteArray(v));
+      });
+    }
+    account.getAssetV2Map().forEach((k, v) -> assets.put(k, v));
     return assets;
   }
 
@@ -195,5 +194,6 @@ public class GenerateData implements Callable<Integer> {
 
   public static void main(String[] args) throws IOException {
     execute();
+//    execute2();
   }
 }

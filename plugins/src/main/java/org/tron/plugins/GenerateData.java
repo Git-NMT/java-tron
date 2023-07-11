@@ -42,6 +42,7 @@ public class GenerateData implements Callable<Integer> {
     private static String GENERATE_DIR = "/Users/liukai/workspaces/tmp/generate_data/account_asset.txt";
 
   private static int count = 0;
+  private static int accountIndex = 0;
 
   @CommandLine.Option(
           names = {"--src", "-s"},
@@ -89,14 +90,17 @@ public class GenerateData implements Callable<Integer> {
     LevelDBIterator accountIterator = getLevelDBIterator("account");
     accountIterator.seekToFirst();
     logger.info("open account");
-    while (count < 2_000_000) {
+    while (accountIndex < 2_000_000) {
       byte[] key = accountIterator.getKey();
       byte[] value = accountIterator.getValue();
       Protocol.Account account = Protocol.Account.parseFrom(value);
       Map<String, Long> allAssets = getAllAssets(account);
       if (allAssets.size() == 0) {
+        accountIterator.next();
         continue;
       }
+      accountIndex++;
+      logger.info("account address: {}, accountIndex: {}, asset size: {}", StringUtil.encode58Check(key), accountIndex, allAssets.size());
       writeAccountAndAssetId(key, allAssets, accountFile);
       accountIterator.next();
     }
@@ -150,7 +154,7 @@ public class GenerateData implements Callable<Integer> {
     accountFile.newLine();
     // for test
 //    accountFile.flush();
-
+    logger.info("concurrent index: {}", count);
     if (count % 10000 == 0) {
       accountFile.flush();
     }

@@ -47,6 +47,7 @@
 
   <root level="INFO">
     <appender-ref ref="ASYNC"/>
+    <appender-ref ref="CONSOLE"/>
   </root>
   <logger level="INFO" name="archive"/>
   <logger level="INFO" name="convert"/>

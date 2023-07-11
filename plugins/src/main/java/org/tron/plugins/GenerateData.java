@@ -105,6 +105,24 @@ public class GenerateData implements Callable<Integer> {
     return 1;
   }
 
+  public static int execute2 () throws IOException {
+    BufferedWriter accountFile = createWriteFileWriter();
+    LevelDBIterator accountIterator = getLevelDBIterator("account-asset");
+    accountIterator.seekToFirst();
+    logger.info("open account");
+
+    while (count < 2_000_000) {
+      byte[] key = accountIterator.getKey();
+      byte[] value = accountIterator.getValue();
+      count++;
+
+
+    }
+
+
+    return 1;
+  }
+
   public static void writeAccountAndAssetId(byte[] key, Map<String, Long> allAssets, BufferedWriter accountFile) {
     for (Map.Entry<String, Long> entry : allAssets.entrySet()) {
       String assetKey = entry.getKey();
